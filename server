@@ -1,0 +1,34 @@
+# --- Colab Cell: WebSocket Server ---
+!pip install fastapi uvicorn nest-asyncio
+
+import nest_asyncio
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import asyncio
+
+
+nest_asyncio.apply()
+
+
+app = FastAPI()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_text("Connected to Real-Time Server")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Echo: {data}")
+    except WebSocketDisconnect:
+        print("Client disconnected")
+
+
+async def run_server():
+    config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+asyncio.create_task(run_server())
+print("WebSocket server is running on ws://127.0.0.1:8000/ws")
