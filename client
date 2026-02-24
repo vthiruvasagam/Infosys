@@ -1,0 +1,26 @@
+# --- Colab Cell: WebSocket Client ---
+!pip install websockets
+
+import asyncio
+import websockets
+
+async def websocket_client():
+    uri = "ws://127.0.0.1:8000/ws"
+    async with websockets.connect(uri) as websocket:
+        greeting = await websocket.recv()
+        print(f"Server: {greeting}")
+
+        print("\nType your messages below. Type 'exit' to quit.\n")
+        while True:
+            msg = input("You: ")
+            if msg.lower() == "exit":
+                break
+            await websocket.send(msg)
+            response = await websocket.recv()
+            print(f"Server: {response}")
+
+        await websocket.close()
+        print("Connection closed.")
+
+
+await websocket_client()
