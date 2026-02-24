@@ -1,0 +1,67 @@
+import nltk
+import re
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk import pos_tag
+from nltk.sentiment import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger_eng')
+nltk.download('vader_lexicon')
+
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+sia = SentimentIntensityAnalyzer()
+
+TOXIC_WORDS = {
+    "hate", "stupid", "idiot", "dumb", "kill",
+    "ugly", "fool", "nonsense", "worst"
+}
+
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z\s]', '', text)
+    tokens = text.split()
+    tokens = [w for w in tokens if w not in stop_words]
+    tokens = [lemmatizer.lemmatize(w) for w in tokens]
+    return tokens
+
+def detect_toxicity(tokens):
+    return any(word in TOXIC_WORDS for word in tokens)
+
+def moderate_messages(messages):
+    processed = [" ".join(preprocess_text(m)) for m in messages]
+    TfidfVectorizer().fit_transform(processed)
+
+    results = []
+    for msg in messages:
+        tokens = preprocess_text(msg)
+        pos_tags = pos_tag(tokens)
+        sentiment = sia.polarity_scores(msg)
+
+        decision = "BLOCK" if detect_toxicity(tokens) or sentiment['neg'] > 0.5 else "ALLOW"
+
+        results.append({
+            "Message": msg,
+            "Tokens": tokens,
+            "POS": pos_tags,
+            "Sentiment": sentiment,
+            "Decision": decision
+        })
+    return results
+
+
+messages = [
+    "I hate this stupid app",
+    "Good morning everyone",
+    "You are an idiot",
+    "Thank you for your help"
+]
+
+output = moderate_messages(messages)
+
+for o in output:
+    print(o)
